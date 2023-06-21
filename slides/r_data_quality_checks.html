@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="" xml:lang="">
   <head>
-    <title>Session 6: Ensuring Data Quality Monitoring</title>
+    <title>Designing Data Quality Checks using R</title>
     <meta charset="utf-8" />
     <meta name="author" content="Marc-Andrea Fiorina" />
     <script src="libs/header-attrs/header-attrs.js"></script>
@@ -100,11 +100,23 @@ Note — This is a set of checks that could reasonably be expected to be conduct
 
 # Setting the Stage
 
-Open the `06-data-quality-script.R` companion script in the folder `lab-6-data-quality/code/`. We will be reading through this script today, and you will follow along.
+If you want to follow along with the R script open and try the functions out yourself, you have two options:
 
-Run `1. Setup`. If you do not have one of the packages installed, uncomment `install.packages("&lt;PACKAGE&gt;")` and run the section again.
+1. Run the following lines of code in RStudio:
 
-Run `2. Data Import` and `3. Basic Cleaning`. Notice that when running data quality checks, we often have to do a little data cleaning (in this case, converting missing values to `NA`) to make sure that the checks run correctly.
+
+```r
+install.packages("usethis")
+usethis::use_zip("https://github.com/mfiorina/r_data_quality_checks_session/archive/main.zip")
+```
+
+OR
+
+2. Click on [this link](https://github.com/mfiorina/r_data_quality_checks_session/archive/main.zip), download and unzip the `r_data_quality_checks_session_main` .zip file, and open `r_data_quality_checks.Rproj`
+
+Then navigate to `code/r_data_quality_checks.R` and you have found the companion R script!
+
+Otherwise, you can just follow along with the presentation for today.
 
 ---
 
