@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Designing Data Quality Checks using R</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Marc-Andrea Fiorina" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/panelset/panelset.css" rel="stylesheet" />
+    <script src="libs/panelset/panelset.js"></script>
+    <script src="libs/xaringanExtra-webcam/webcam.js"></script>
+    <script id="xaringanExtra-webcam-options" type="application/json">{"width":"200","height":"200","margin":"1em"}</script>
+    <script src="libs/clipboard/clipboard.min.js"></script>
+    <link href="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.css" rel="stylesheet" />
+    <script src="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.js"></script>
+    <script>window.xaringanExtraClipboard(null, {"button":"Copy Code","success":"Copied!","error":"Press Ctrl+C to Copy"})</script>
+    <script>window.xaringanExtraClipboard(null, {"button":"Copy Code","success":"<i class=\"fa fa-check\" style=\"color: #90BE6D\"><\/i>","error":"<i class=\"fa fa-times-circle\" style=\"color: #F94144\"><\/i>"})</script>
+    <link href="libs/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="libs/font-awesome/css/v4-shims.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/default.css" type="text/css" />
+    <link rel="stylesheet" href="css/metropolis.css" type="text/css" />
+    <link rel="stylesheet" href="css/metropolis-fonts.css" type="text/css" />
+    <link rel="stylesheet" href="css/custom.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+class: clear
+
+&lt;img src="media/title_slide.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Table of Contents
+
+1. [Introduction](#intro)
+
+2. [Duplicate IDs](#duplicates)
+
+3. [Outliers](#outliers)
+
+4. [Descriptive Statistics](#desc_stats)
+
+5. [Enumerator-Level Checks](#enum_level)
+
+6. [Geographic/Administrative Unit-Level Checks](#admin_level)
+
+7. [Survey Programming Checks](#survey_programming)
+
+8. [Exporting and Sharing Your Data Quality Checks](#exporting)
+
+---
+
+class: inverse, center, middle
+name: intro
+
+# Introduction
+
+---
+
+# Introduction
+
+### Purpose of this session
+
+- To show you how to create a basic, comprehensive set of data quality check outputs
+- To introduce a simple data process to run data quality checks efficiently
+
+### What we will do today
+
+- Define a basic set of data quality checks to conduct
+- For each type of check, we will produce one or two outputs, in the form of a table or graph
+- We will discuss options for importing, wrangling, exporting, and sharing data quality checks
+
+### What we will not do today
+
+- Discuss back checks
+- Discuss non-data based forms of data quality checks, such as audio audits
+
+---
+
+# Introduction
+
+### A basic set of data quality checks
+
+- Duplicate IDs
+- Outliers
+- Descriptive statistics
+- Enumerator-level checks
+- Administrative/Geographic unit-level checks (e.g. village, county, etc.)
+- Unit of observation-level checks (e.g. household, firm, etc.)
+- Survey programming checks
+
+.notes[
+Note — This is a set of checks that could reasonably be expected to be conducted for any data collection exercise. Depending on context, you may not need/want to implement every one of these. There may also be other checks that are necessary/useful for your context, but which are not covered here.
+]
+
+---
+
+# Setting the Stage
+
+If you want to follow along with the R script open and try the functions out yourself, you have two options:
+
+1. Run the following lines of code in RStudio:
+
+
+```r
+install.packages("usethis")
+usethis::use_zip("https://github.com/mfiorina/r_data_quality_checks_session/archive/main.zip")
+```
+
+OR
+
+2. Click on [this link](https://github.com/mfiorina/r_data_quality_checks_session/archive/main.zip), download and unzip the `r_data_quality_checks_session_main` .zip file, and open `r_data_quality_checks.Rproj`
+
+Then navigate to `code/r_data_quality_checks.R` and you have found the companion R script!
+
+Otherwise, you can just follow along with the presentation for today.
+
+---
+
+class: inverse, center, middle
+name: duplicates
+
+# Duplicate IDs
+
+---
+
+# Duplicate IDs
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+&lt;b&gt;&lt;u&gt;Duplicate IDs can occur when:&lt;/u&gt;&lt;/b&gt;
+- Multiple enumerators survey the same household/firm/etc.
+- There is an input error for the ID field.
+
+&lt;b&gt;&lt;u&gt;Process to address duplicate IDs:&lt;/u&gt;&lt;/b&gt;
+- Identify IDs that appear multiple times in the dataframe.
+- In the HFC process — choose what to temporarily do with the duplicate observations. You could:
+    - Drop them until they are resolved
+    - Keep them. A possible way to do this is to modify the ID field for duplicate observations so that the dataframe is once more uniquely identified. e.g. if there are two observations with ID `101`, modify them to be `101_1` and `101_2`. The companion script shows how to do this.
+- Check with the data collectors to determine why the duplicate observations occurred.
+- Either dropping one of the duplicate observations or correct their ID in the data &lt;b&gt;&lt;i&gt;prior&lt;/i&gt;&lt;/b&gt; to running your data quality checks. This means creating a &lt;b&gt;&lt;i&gt;"corrections"&lt;/i&gt;&lt;/b&gt; script that is run prior to creating these quality check outputs.
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Uses `group_by()` and `summarize()` to identify IDs that appear multiple times
+
+- Outputs duplicate observations to `duplicate check`, including:
+    - Household enumerator, and location identifiers
+    - Some outcome indicators. These can give an indication of whether the same household was surveyed twice or not.
+    
+- Modifies the `hhid` field in `survey_data` so that the dataframe is once again uniquely identified. e.g. there are two observations with `hhid == 3004`, so we change them to become `3004_1` and `3004_2`.
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: outliers
+
+# Outliers
+
+---
+
+# Outliers
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+&lt;b&gt;&lt;u&gt;Outliers can occur when:&lt;/u&gt;&lt;/b&gt;
+- The enumerator makes an input error. e.g. they enter `100000` instead of `10000`.
+- Naturally! Sometimes specific observations are very different from the rest of the sample. So we don't want to automatically remove every outlier we find.
+
+&lt;b&gt;&lt;u&gt;Process to address outliers:&lt;/u&gt;&lt;/b&gt;
+- Identify observations who have a variable whose value is outside of an acceptable range.
+    - This range can be absolutely defined (e.g. if someone says they work more than 20 hours a day, we should confirm that).
+    - This range can be defined relative to the variable's distribution in the sample. For instance, we could identify values that are more than 3 standard deviations away from the variable's mean.
+- Check the outlier values with the data collectors.
+- If there was a mistake, use a corrections script to fix the value. Once more, this should happen &lt;b&gt;&lt;i&gt;prior&lt;/i&gt;&lt;/b&gt; to the data quality checks process, so that only the "correct" outliers remain in the data.
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Defines a set of variables that we want to check for outliers. In our case, those are:
+    - Household Member 1's income (`inc_01`)
+    - Household's revenue from selling crop 1 (`crp10a_c1_p1`)
+    - Household's revenue from selling crop 2 (`crp10a_c1_p2`)
+
+- For each variable, uses `map()` and `filter()` to select households where the variable's value is more than 3 standard deviations away from the mean.
+
+- Creates the `outlier_check` dataframe, which includes:
+    - Household and enumerator identifiers
+    - Average, "lower," and "upper" limits for the given variable. This helps determine how significant the outlier is.
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: desc_stats
+
+# Descriptive Statistics
+
+---
+
+# Descriptive Statistics
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+&lt;b&gt;&lt;u&gt;Basic descriptive statistics for our data collection's process outcome indicators can serve to:&lt;/u&gt;&lt;/b&gt;
+- Verify that the indicator's values are in an expected range
+- Get an initial sense of the distribution of this indicator within our sample
+
+&lt;b&gt;&lt;u&gt;To output descriptive statistics, we can:&lt;/u&gt;&lt;/b&gt;
+- Create a summary statistics table, with statistics such as mean, median, standard deviation, minimum, maximum. This is what the script does.
+- Create some exploratory graphs.
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Defines a set of variables for which we want descriptive statistics.
+
+- For each variable, uses `map()` and `summarize()` to output the desired summary statistics.
+
+- Uses `pivot_longer()` and `pivot_wider()` to reshape the dataset into its intended structure (one row per indicator of interest).
+
+- Replaces the indicator's variable name (e.g. `inc_01`) with a variable label (e.g. "First household member income").
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: enum_level
+
+# Enumerator-Level Checks
+
+---
+
+# Enumerator-Level Checks
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+&lt;b&gt;&lt;u&gt;Enumerator-level checks can serve to:&lt;/u&gt;&lt;/b&gt;
+- Verify whether an enumerator is collecting data in an unusual manner. Useful checks for this are average survey duration, descriptive statistics, and percentage of don't know/refused to respond answers.
+- Check progress. Useful checks for this are total number of surveys and surveys per day.
+
+.notes[
+Note — While data-based checks help with this, the best instrument to catch enumerator fraud is &lt;b&gt;audio audits&lt;/b&gt;.
+]
+
+&lt;b&gt;&lt;u&gt;To output enumerator-level checks, we can:&lt;/u&gt;&lt;/b&gt;
+- Create a &lt;b&gt;summary dataframe where the enumerator is the unit of observation&lt;/b&gt;, with summary statistics drawn from the original dataframe.
+- Create data visualizations, e.g. to show cumulative number of surveys per enumerator over time.
+- If the data collection process assigned specific households/firms to enumerators, we can also track progress for each enumerator as a percentage of expected surveys.
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Uses `group_by(enumerator, submissiondate)` to summarize the number of surveys collected per enumerator per day, creating `enumerator_check_by_day`. `pivot_wider()` reshapes the dataframe to be at the enumerator level.
+
+.notes[
+Note — SurveyCTO exports a `submissiondate` variable, but it has both the date and time of submission. A useful tool to convert this to date is the `lubridate::date()` function.
+]
+
+- Creates `enumerator_check` using `summarize()` to obtain number of surveys and descriptive statistics per enumerator.
+
+- Uses `left_join()` to add the per-day data to `enumerator_check`.
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: admin_level
+
+# Geographic/Administrative Unit-Level Checks
+
+---
+
+# Geographic/Administrative Unit-Level Checks
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+&lt;b&gt;&lt;u&gt;Geographic/Administrative unit-level checks can serve to:&lt;/u&gt;&lt;/b&gt;
+- Track progress. Useful checks for this are total number of surveys and number of surveys per day.
+- Check for potential general data collection issues. e.g. in a randomized controlled trial, a check at the randomization level (e.g. village) can confirm whether participants are complying with their treatment.
+
+&lt;b&gt;&lt;u&gt;To output geographic/administrative unit-level checks, we can:&lt;/u&gt;&lt;/b&gt;
+- Create a &lt;b&gt;summary dataframe where the geographic/administrative unit is the unit of observation&lt;/b&gt;, with summary statistics drawn from the original dataframe.
+- Create data visualizations, e.g. to show cumulative number of surveys per geographic/administrative unit over time.
+- If we have the expected number of surveys per geographic/administrative unit, we can also track progress for each of them as a percentage of expected surveys.
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Uses `group_by(village, submissiondate)` to summarize the number of surveys collected per village per day, creating `village_check_by_day`. `pivot_wider()` reshapes the dataframe to be at the village level.
+
+- Creates `village_check` using `summarize()` to obtain number of surveys and descriptive statistics per village.
+
+- Uses `left_join()` to merge in `num_to_survey` (expected number of surveys per village) from `admin_data`.
+
+- Uses `left_join()` to add the per-day data to `village_check`.
+
+.notes[
+Note — If we wanted to include villages where no survey has been conducted yet, we could use `right_join()` to merge in `admin_data` instead of `left_join()`.
+]
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: survey_programming
+
+# Survey Programming Checks
+
+---
+
+# Survey Programming Checks
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+&lt;b&gt;&lt;u&gt;Survey programming checks can serve to:&lt;/u&gt;&lt;/b&gt;
+- Monitor survey programming issues that can't be programmed into the survey instrument.
+- Implement "soft" survey restrictions. Sometimes, we don't want to use relevances or conditions to prevent a certain outcome in our survey, but we still want to monitor this outcome when it occurs. e.g. a survey where if the head of household is under 18, we still want to proceed, but we want to double-check with the enumerator that there was no other option.
+
+.notes[
+Note — We can often block undesired programming issues from occurring using relevances and conditions in the survey instrument. This is often preferable to monitoring the in data quality checks.
+]
+
+&lt;b&gt;&lt;u&gt;To output survey programming checks, we can:&lt;/u&gt;&lt;/b&gt;
+- Create a &lt;b&gt;summary dataframe for each issue we want to check&lt;/b&gt;, with accompanying relevant indicators that will help us address this issue.
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Performs three programming issue checks:
+    - Survey form definition — whether a survey submission used an old version of the survey.
+    - Crop production vs. sale unit — whether a household provided the same unit for production and sale of a crop. This is an example of a condition that we may not want to hard-code into the survey, but that we may want to monitor or even discourage.
+    - Wrong site — whether a household said that we had the wrong worksite on record for them.
+    
+- For each issue, uses `filter()` to create `&lt;ISSUE&gt;_check` and creates a new `issue` variable that describes the problem.
+
+- Uses `bind_rows()` and `left_join()` to create `survey_programming_check`, which includes:
+    - Household and enumerator identifiers
+    - The `issue` variable, describing the problem
+    - Additional variables that will help us address each issue
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: exporting
+
+# Exporting Your Data Quality Checks
+
+---
+
+# Exporting Your Data Quality Checks
+
+.panelset[
+
+.panel[.panel-name[Process]
+
+The method you use to export and share your data quality checks is key for your process's effectiveness.
+
+Questions to ask when determining the method you'll use:
+- Who needs to see these data quality checks? Is it easy to share your data quality check outputs with them?
+- Is your process efficient? How simple is it for you to export and share these outputs?
+- Are your outputs accessible? Are they clear and easy to understand?
+
+&lt;b&gt;&lt;u&gt;Some options to export and share your data quality checks:&lt;/u&gt;&lt;/b&gt;
+- Microsoft Excel
+- Google Sheets
+- Shiny dashboard
+- Anything else?
+
+]
+
+.panel[.panel-name[Code]
+
+In the companion script, the code:
+
+- Exports our data quality check dataframes to Excel. This was the simplest to implement for this session, but has the downside of requiring some manual customization in Excel.
+
+- Uses `loadWorkbook()`, `writeData()`, and `saveWorkbook()` from the `openxlsx` package to modify the `lab-6-data-quality/output/hfc_output.xlsx` spreadsheet.
+
+- Simplest method to create more visually appealing tables within Excel:
+    - Export each dataframe to a `&lt;CHECK&gt;_data` sheet. e.g. the enumerator-level checks are in the `enum_data` sheet.
+    - Use Excel functions to build better-looking tables in a separate sheet. e.g. the enumerator-level tables are in the `Enumerators` sheet.
+
+]
+
+]
+
+---
+
+class: inverse, center, middle
+name: exporting
+
+# Conclusion
+
+---
+
+# Conclusion: Final Notes
+
+### Purpose of this session
+
+- To show you how to create a basic, comprehensive set of data quality check outputs
+- To introduce a simple data process to run data quality checks efficiently
+
+&lt;b&gt;The data quality checks presented in this session are not intended to be comprehensive&lt;/b&gt;. There is much more that could be done in terms of visualization types or export format that we did not have time to cover.
+
+The hope is that these slides and the companion script can serve as a template for people who want to design their own data quality checks process.
+
+### A possible helper tool?
+
+DIME Analytics is developing &lt;b&gt;iehfc&lt;/b&gt;, an interactive platform that will allow users to set up and customize data quality checks. This platform will use the same approach and methods presented in today's session! Look out for a first version later in 2023.
+
+---
+
+class: clear
+
+&lt;img src="media/thank_you_slide.png" width="100%" style="display: block; margin: auto;" /&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
