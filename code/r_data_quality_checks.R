@@ -102,7 +102,7 @@
 # Step 2 — Check for variables outside of expected range
   
   outlier_check <- outlier_variables %>%
-      map_dfr(
+      map(
           ~ survey_data %>%
               mutate(
                   across(
@@ -126,7 +126,9 @@
               select(
                   hhid, enumerator, issue_var, value = matches(.x), mean, sd, low_limit, high_limit
               )
-      )
+      ) %>%
+      
+      list_rbind()
   
 # Note — Ideally, we would want one mean and one standard deviation for income across all household
 # members. Try thinking about how we could implement that into the above.
